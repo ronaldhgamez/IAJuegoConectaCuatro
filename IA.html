@@ -3,7 +3,7 @@
 <title>Web Page Design</title>
 <head>
 <script>
-
+/*
 var n = 8;
 var matrix = [
     0, 0, 0, 0, 0, 0, 0, 0, // 0
@@ -11,11 +11,11 @@ var matrix = [
     0, 0, 0, 0, 0, 0, 0, 0, // 16
     0, 0, 0, 0, 0, 0, 0, 0, // 24
     0, 0, 0, 0, 0, 0, 0, 0, // 32
-    0, 0, 2, 0, 2, 1, 0, 0, // 40
+    0, 0, 2, 0, 2, 0, 0, 0, // 40
     0, 0, 1, 2, 1, 2, 0, 0, // 48
-    1, 1, 2, 2, 1, 2, 2, 1  // 56
+    0, 1, 1, 2, 1, 2, 0, 0 // 56
 ];
-
+*/
 /* crear doble jugada
 var n = 8;
 var matrix = [
@@ -42,7 +42,7 @@ var matrix = [
     1, 2, 2, 2, 1, 2, 2, 
     2, 1, 1, 1, 2, 2, 1];
 */
-/*
+var n = 7;
 var matrix = [
     0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0,
@@ -52,7 +52,7 @@ var matrix = [
     0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0
 ];
-*/
+
 
 // Validates if it is the player's first move
 function isInitialMove(color) {
@@ -94,6 +94,22 @@ function combineObjects(obj1, obj2) {
 // Validate if the index is a empty space and if has a checker below
 function isEmptyAndValid(tempIndex) {
     return (matrix[tempIndex] == 0 && matrix[tempIndex + n] != 0) ? true : false;
+}
+
+// Returns an array with all possible indices where a checker can be inserted
+function allPosiblesIndex() {
+    var indexes = [];
+    for (var i=(matrix.length - 1); i >= (matrix.length - n); i--) {
+        let j = i;
+        while(j >= 0) {
+            if (matrix[j] == 0) {
+                indexes.push(j); // add posible index
+                break;
+            }
+            j -= n;
+        }
+    }
+    return indexes;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -271,93 +287,81 @@ function validateSubgroup(group, color) {
 }
 
 
+
 ///////////////////////////////////////////////////////////////////////////////////////
-//  -->
+// Functions to try to create double plays -->
 ///////////////////////////////////////////////////////////////////////////////////////
 
 
-
-// es innecesaria??
-function bestOptionToWin(winIndices) {
-    // buscar el indice apropiado
-    var index = -1;
-    var total = 0; // veces que puede ganar con ese indice
-    for(var key in winIndices) {
-        if (winIndices[key] > total) {
-            total = winIndices[key];
-            index = parseInt(key);
-        }
-    }
-    return index;
-}
-
-function allPosiblesIndex() {
-    var indexes = [];
-    for (var i=(matrix.length - 1); i >= (matrix.length - n); i--) {
-        let j = i;
-        // mientras no se salga y sea del mismo color
-        while(j >= 0) {
-            if (matrix[j] == 0) {
-                indexes.push(j); // add posible index
-                break;
-            }
-            j -= n;
-        }
-    }
-    return indexes;
-}
-
-// simula todos los posibles movimientos y crea un json con los ganes
-// y las veces que gana
-
-// retorna indice del indice del tablero donde tiene mas chance de ganar
-// se puede armar jugada de gane? (tres fichas y una vacia)
-function simulatePosiblesMoves(cpuColor) {
+/**
+ * Returns the index where the computer can apply a double play.
+ * Returns -1 if double play is not possible.
+ */
+function canMakeDoubleMove(cpuColor) {
     
-    // buscar todos los posibles indices donde se puede insertar ficha
+    // Find all possible indices where a checker can be inserted
     var indexes = allPosiblesIndex(); // [i, i, i, i]
     var size = indexes.length;
-
-    var best = -1; // best index to move
-    var times = -1; // total of times that the player can win
     
-    // Simulate every posible index
+    // For each possible movement its execution is simulated.
     for(var i=0; i < size; i++) {
-        matrix[indexes[i]] = cpuColor; // se simula poner fichas en los indices que se pueden
-        console.log("Simulating index ---> [" + indexes[i] + "]");
-        // once its simulate, it searches posibles wins
-        var posiblesWin = searchWinningsIndices(cpuColor);
+        matrix[indexes[i]] = cpuColor; // Simulating
+        //console.log("Simulating index ---> [" + indexes[i] + "]");
         
-        if (Object.keys(posiblesWin).length > 0) {
+        // Once it's simulate, it searches posibles wins
+        var posiblesWin = searchWinningsIndices(cpuColor);
 
-            console.log("Object Posibles win: ");
+        // Restart the matrix status
+        matrix[indexes[i]] = 0;
+        
+        // If the computer has more than 1 option, it is because it can double play.
+        if (Object.keys(posiblesWin).length > 1) {
             printObject(posiblesWin);
-
-            var timesTemp = 0; // total times that can win
-            for (var key in posiblesWin) {
-                console.log("Can win in [" + key + "] " + posiblesWin[key] + " time(s)");
-                timesTemp += posiblesWin[key];
-            }
-            console.log("Total final times: " + timesTemp);
-            
-            if (timesTemp > times) {
-                times = timesTemp;
-                best = indexes[i];
-                console.log("~BTW Is better");
-            } else {
-                console.log("~BTW isn't better");
-            }
-
-        } else{
-            console.log("Can NOT win");
+            console.log("Can make double move at [" + indexes[i] + "]");
+            return indexes[i]; // Returns the index to apply the double play
         }
-        console.log("---------------------------");
-        matrix[indexes[i]] = 0; // restablece a como estaba antes para
     }
-
-    console.log("The final best index is: [" + best + "]");
-    return best; // returns -1 if there is no options
+    return -1; // returns -1 if there is no way to apply a double move
 }
+
+// Run a double simulation to see if a double play can be built.
+function canBuildDobleMove(cpuColor) {
+    // Find all possible indices where a checker can be inserted
+    var indexes = allPosiblesIndex();
+    var size = indexes.length;
+
+    // Posibles indices
+    var posibles = [];
+    
+    // For each possible movement its execution is simulated.
+    for(var i=0; i < size; i++) {
+
+        //console.log("Simulating: index ---> [" + indexes[i] + "]");
+        matrix[indexes[i]] = cpuColor; // Simulating
+
+        // Ignorar crear jugadas de gane
+        if (Object.keys(searchWinningsIndices(cpuColor)).length > 0) {
+            matrix[indexes[i]] = 0;
+            continue;
+        }
+        
+        // Run double simulation
+        var index = canMakeDoubleMove(cpuColor);
+
+        // Restart the matrix status
+        matrix[indexes[i]] = 0;
+
+        if(index != -1) {
+            console.log("A posible builded move can be done in: " + indexes[i]);
+            posibles.push(indexes[i]);
+        }
+        console.log("-----");
+    }
+    let total = posibles.length;
+    // TO RANDOMLY SELECT A THE MOVE
+    return (total > 0) ? posibles[getRandomInt(0, total)]: -1; // returns -1 if there is no way to build a double move
+}
+
 
 
 function horizontalNeigbors(index, color) {
@@ -515,13 +519,12 @@ function neighbors(index, color) {
 
 
 function nextMove(cpuColor, rivalColor) {
-    
 
     // Searches all posibles moves
     var indices = allPosiblesIndex();
     let size = indices.length;
-
     
+    var posibles = [];
     let total = 0;
 
     for (var i=0; i < size; i++) {
@@ -530,52 +533,84 @@ function nextMove(cpuColor, rivalColor) {
         var arrayLength = array.length;
         
         if (arrayLength > total ) {
+            posibles = [];
             total = arrayLength;
-            index = indices[i]; // Choosen index
+            posibles.push(indices[i]); // Posible index to choose
+        } else if (arrayLength == total ) {
+            posibles.push(indices[i]); // Posible index to choose
         }
-        
     }
+    console.log("posibles: [" + posibles + "]");
+    console.log("total of indices: " + total);
+    var len = posibles.length;
+    console.log("total of posibles: " + len);
+    return (total > 0) ? posibles[getRandomInt(0, len)]: -1;
+}
 
+// es innecesaria??
+function bestOptionToWin(winIndices) {
+    // buscar el indice apropiado
+    var index = -1;
+    var total = 0; // veces que puede ganar con ese indice
+    for(var key in winIndices) {
+        if (winIndices[key] > total) {
+            total = winIndices[key];
+            index = parseInt(key);
+        }
+    }
     return index;
 }
 
 // 
 function CPU_IA(cpuColor, rivalColor) {
 
-    // INITIAL MOVE
+    // 1. INITIAL MOVE
     if(isInitialMove(cpuColor) == true) {
         return getRandomInt((n * n - n), (n * n)); // random index choice
     }
 
-    // VERIFIES IF CPU CAN WIN
+    // 2. VERIFIES IF THE COMPUTER CAN WIN
     var winIndices = {};
     winIndices = searchWinningsIndices(cpuColor);
     if (Object.keys(winIndices).length > 0) {
         return bestOptionToWin(winIndices);
     }
 
-    // TO BLOCK OPPONENT MOVES
+    // 3. TO BLOCK OPPONENT MOVES
     winIndices = searchWinningsIndices(rivalColor);
     if (Object.keys(winIndices).length > 0) {
         return bestOptionToWin(winIndices);
     }
 
-    // TO CREATE DOUBLE MOVES
-    var index;
-    if ((index = canMakeDoubleMove(cpuColor)) != -1) {
-        return index;
-    }
-
-    // trata de hacer jugadas dobles
-    // se puede armar jugada de gane? (tres fichas y una vacia)
-
-    // Dev
-    var index = simulatePosiblesMoves(cpuColor);
+    // 4. VALIDATE IF THE RIVAL CAN MAKE A DOUBLE MOVE
+    var index = canMakeDoubleMove(rivalColor);
     if (index != -1) {
+        console.log("Rival: puede hacer doble jugada, bloqueando...");
         return index;
     }
 
-    // TO SEARCH NEXT MOVE
+    // 5. ANALYZE IF THERE IS A POSSIBILITY THAT THE RIVAL CAN BUILD A DOUBLE PLAY.
+    index = canBuildDobleMove(rivalColor);
+    if (index != -1) {
+        console.log("Rival puede armar doble jugada, bloqueando...");
+        return index;
+    }
+
+    // 6. VALIDATE IF THE COMPUTER CAN MAKE A DOUBLE MOVE
+    var index = canMakeDoubleMove(cpuColor);
+    if (index != -1) {
+        console.log("Computer: Realizando doble jugada");
+        return index;
+    }
+
+    // 7. ANALYZE IF THERE IS A POSSIBILITY THAT THE COMPUTER CAN BUILD A DOUBLE PLAY.
+    index = canBuildDobleMove(cpuColor);
+    if (index != -1) {
+        console.log("Tratando de armar doble jugada");
+        return index;
+    }
+
+    // 8. FINALLY, TO SEARCH THE MOST APPROPIATE NEXT MOVE
     return nextMove(cpuColor);
 }
 
@@ -609,11 +644,12 @@ function CPU_IA(cpuColor, rivalColor) {
 
 
 ////////////////////////// DELETE //////////////////////////
+
 function printMatrix() {
     var c = 0;
     for (var i=0; i<matrix.length; i++) {;
         text = matrix[i] + "  |  ";
-        document.write("<h4 style='background-color:powderblue;'>" + text +"</h4>");
+        document.write(text);
         c++;
         if(c==n) {
             document.write("<br>");
@@ -623,7 +659,7 @@ function printMatrix() {
     document.write("<br>");
 }
 
-var turn = 2;
+var turn = 1;
 
 function insert(index, color) {
     matrix[index] = color;
@@ -632,6 +668,7 @@ function insert(index, color) {
 }
 
 function makeMove() {
+    
     var contrario;
     var index;
     var ant = turn;
@@ -642,10 +679,21 @@ function makeMove() {
         index = CPU_IA(turn, 1);
         matrix[index] = turn;
     }
+    var color = (turn == 1) ? "Amarillo" : "Rojo";
     turn = (turn == 1) ? 2 : 1;
     printMatrix();
-    return "Se tiró ficha " + ant + " en indice " + index;
+    return color + " ---> " + index;
     
+}
+
+async function play() {
+    var total = n * n - 1;
+    while(total > 0) {
+        await new Promise(r => setTimeout(r, 11000));
+        console.log("...........................");
+        console.log(makeMove());
+        total--;
+    }
 }
 
 /*
@@ -664,7 +712,7 @@ function allNeighbors(color) {
 */
 
 function printObject(dict) {
-    document.write(JSON.stringify(dict, null, 4));
+    //document.write(JSON.stringify(dict, null, 4));
     console.log(JSON.stringify(dict, null, 4));
 }
 
