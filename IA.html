@@ -640,11 +640,12 @@ function CPU_IA(cpuColor, rivalColor) {
 
 function validateWin(color) {
 
+    var indices = [];
+
     // Horizontally
     var size = n * n;
-
     for (var i=(size - 1); i >= (n - 1); i-=n) {
-        var indices = createRows(i); // array of indices horizontal
+        indices = createRows(i); // array of indices horizontal
         console.log("GROUP: [" + indices + "]");
         // Merge Objects: add the posibles moves to winIndices
         //winIndices = combineObjects(winIndices, evaluateRowOrDiagonal(indices, color));
@@ -657,7 +658,30 @@ function validateWin(color) {
     return [];
 }
 
+function subgroupWin (indices, color) {
+    var start = 0;
+    var count = 0;
 
+    var group = []; // To store the subgroups.
+    
+    var len = indices.length;
+    for (var i=0; i <= len; i++) {
+        if (count == 4) {
+            console.log("subgroup:: [" + group + "]");
+            // valid if the is posibility to win
+            var index = validateSubgroup(group, color);
+            if (index > -1) {
+                
+            }
+            i = start + 1;
+            count = 0;
+            start = i;
+            group = [];
+        }
+        group.push(indices[i]);
+        count++;
+    }
+}
 
 
 
