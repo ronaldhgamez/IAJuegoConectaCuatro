@@ -3,6 +3,19 @@
 <title>Web Page Design</title>
 <head>
 <script>
+    /*
+var n = 8;
+var matrix = [
+    0, 0, 0, 0, 0, 0, 0, 0, // 0
+    0, 0, 0, 0, 0, 0, 0, 0, // 8
+    0, 0, 0, 0, 0, 0, 0, 0, // 16
+    0, 0, 0, 0, 0, 0, 0, 0, // 24
+    0, 0, 0, 0, 0, 0, 0, 0, // 32
+    0, 0, 0, 0, 0, 0, 0, 0, // 40
+    0, 0, 0, 0, 0, 0, 0, 0, // 48
+    0, 0, 0, 0, 0, 0, 0, 0  // 56
+];
+*/
 /*
 var n = 8;
 var matrix = [
@@ -31,7 +44,7 @@ var matrix = [
 */
 
 // estado corregir que gana con el movimiento contrario
-/*
+
 var n = 7;
 var matrix = [
     0, 0, 0, 0, 0, 0, 0, 
@@ -41,7 +54,8 @@ var matrix = [
     0, 0, 0, 1, 1, 2, 0, 
     1, 2, 2, 2, 1, 2, 2, 
     2, 1, 1, 1, 2, 2, 1];
-*/
+
+/*
 var n = 7;
 var matrix = [
     0, 0, 0, 0, 0, 0, 0,
@@ -52,7 +66,7 @@ var matrix = [
     0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0
 ];
-
+*/
 
 // Validates if it is the player's first move
 function isInitialMove(color) {
@@ -169,16 +183,9 @@ function horizontalWinningsIndices(color) {
     var winIndices = {};
     var size = n * n;
 
-    for (var i=(size - 1); i >= (n - 1); i-=n) {    
-        let tempIndex = i;
-        var indices = []; // array of indices horizontal
-
-        // For each row on the board create an array with all its indexes.
-        while((i - (n - 1)) >= 0 && tempIndex != (i-n)) {
-            indices.push(tempIndex);
-            tempIndex--;
-        }
-        //console.log("GROUP: [" + indices + "]");
+    for (var i=(size - 1); i >= (n - 1); i-=n) {
+        var indices = createRows(i); // array of indices horizontal
+        console.log("GROUP: [" + indices + "]");
         // Merge Objects: add the posibles moves to winIndices
         winIndices = combineObjects(winIndices, evaluateRowOrDiagonal(indices, color));
     }
@@ -230,6 +237,17 @@ function diagonalWinningsIndices(color) {
     return winIndices;
 }
 
+function createRows(tempIndex) {
+    var i = tempIndex;
+    var indices = []; // array of indices horizontal
+    // For each row on the board create an array with all its indexes.
+    while((i - (n - 1)) >= 0 && tempIndex != (i-n)) {
+        indices.push(tempIndex);
+        tempIndex--;
+    }
+    return indices;
+}
+
 /**
  * Receive an array with the indices of a row or a diagonal of the board.
  * Then, this creates subgroups of 4 indices and sends them to another function
@@ -246,7 +264,7 @@ function evaluateRowOrDiagonal(indices, color) {
     var len = indices.length;
     for (var i=0; i <= len; i++) {
         if (count == 4) {
-            //console.log("subgroup:: [" + group + "]");
+            console.log("subgroup:: [" + group + "]");
             // valid if the is posibility to win
             var index = validateSubgroup(group, color);
             if (index > -1) {
@@ -316,8 +334,8 @@ function canMakeDoubleMove(cpuColor) {
         
         // If the computer has more than 1 option, it is because it can double play.
         if (Object.keys(posiblesWin).length > 1) {
-            printObject(posiblesWin);
-            console.log("Can make double move at [" + indexes[i] + "]");
+            //printObject(posiblesWin);
+            //console.log("Can make double move at [" + indexes[i] + "]");
             return indexes[i]; // Returns the index to apply the double play
         }
     }
@@ -363,8 +381,11 @@ function canBuildDobleMove(cpuColor) {
 }
 
 
+///////////////////////////////////////////////////////////////////////////////////////
+// Functions to find the horizontal and diagonal neighbors of a checker.  -->
+///////////////////////////////////////////////////////////////////////////////////////
 
-function horizontalNeigbors(index, color) {
+function horizontalNeighbors(index, color) {
     //////////////// Horizontal neighborings ////////////////
     var neigborsIndeces = [];
  
@@ -510,15 +531,14 @@ function neighbors(index, color) {
     
     var neigbors = [];
     // Searches horizontal and diagonal indicesd
-    neigbors = horizontalNeigbors(index, color);
+    neigbors = horizontalNeighbors(index, color);
     neigbors = neigbors.concat(diagonalNeighbors(index, color));
 
     return neigbors;
 }
 
 
-
-function nextMove(cpuColor, rivalColor) {
+function nextMove(cpuColor) {
 
     // Searches all posibles moves
     var indices = allPosiblesIndex();
@@ -532,7 +552,7 @@ function nextMove(cpuColor, rivalColor) {
         var array = neighbors(indices[i], cpuColor);
         var arrayLength = array.length;
         
-        if (arrayLength > total ) {
+        if (arrayLength > total) {
             posibles = [];
             total = arrayLength;
             posibles.push(indices[i]); // Posible index to choose
@@ -541,13 +561,11 @@ function nextMove(cpuColor, rivalColor) {
         }
     }
     console.log("posibles: [" + posibles + "]");
-    console.log("total of indices: " + total);
+    console.log("they have total of neightbords: " + total);
     var len = posibles.length;
-    console.log("total of posibles: " + len);
     return (total > 0) ? posibles[getRandomInt(0, len)]: -1;
 }
 
-// es innecesaria??
 function bestOptionToWin(winIndices) {
     // buscar el indice apropiado
     var index = -1;
@@ -566,7 +584,7 @@ function CPU_IA(cpuColor, rivalColor) {
 
     // 1. INITIAL MOVE
     if(isInitialMove(cpuColor) == true) {
-        return getRandomInt((n * n - n), (n * n)); // random index choice
+        return nextMove(cpuColor); // Pseudo random index choice
     }
 
     // 2. VERIFIES IF THE COMPUTER CAN WIN
@@ -615,24 +633,29 @@ function CPU_IA(cpuColor, rivalColor) {
 }
 
 
-// 1: amarillo
-// 2: rojo
-// buscar movimiento siguiente
-// 0. si no hay fichas tirar al azar
-// 0.1 VERIFICA SI TIENE MOVIMIENTOS DE GANE
-// 1. buscar jugadas enemigas(INDICE) (falta diagonal)
-// 1.2. si las hay bloquear la mejor
 
-// 2. buscar posición para jugar (next move)
-// 3. Validar si esa posicion le da gane al contrario
-// 3.1 si si: buscar otra jugada
-// 3.2 si no: retornar indice
+///////////////////////////////////////////////////////////////////////////////////////
+// Validate if a player won the game -->
+///////////////////////////////////////////////////////////////////////////////////////
 
+function validateWin(color) {
 
+    // Horizontally
+    var size = n * n;
 
+    for (var i=(size - 1); i >= (n - 1); i-=n) {
+        var indices = createRows(i); // array of indices horizontal
+        console.log("GROUP: [" + indices + "]");
+        // Merge Objects: add the posibles moves to winIndices
+        //winIndices = combineObjects(winIndices, evaluateRowOrDiagonal(indices, color));
+    }
 
+    // Diagonally
 
+    // Vertically
 
+    return [];
+}
 
 
 
