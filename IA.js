@@ -1,8 +1,3 @@
-<!DOCTYPE html>
-<html>
-<title>Web Page Design</title>
-<head>
-<script>
 /*
 var n = 8;
 var matrix = [
@@ -52,8 +47,9 @@ var matrix = [
     0, 0, 0, 0, 2, 0, 0,
     0, 0, 0, 1, 1, 1, 0, 
     0, 0, 0, 1, 1, 2, 0, 
-    1, 2, 2, 2, 1, 2, 2, 
+    2, 2, 2, 2, 1, 2, 2, 
     2, 1, 1, 1, 2, 2, 1];
+
 */
 
 var n = 7;
@@ -699,7 +695,7 @@ function validateWin(color) {
             }
             j -= n; // Goes up
             
-            if (count >= 3 && matrix[j] == 0)
+            if (count == 4)
                 return subgroup;
         }
     }
@@ -753,6 +749,100 @@ function evaluateSubgroups (indices, color) {
 
 ////////////////////////// DELETE //////////////////////////
 
+function printBoard() {
+    document.write(
+        '<table id="mytable" style="background-color:blue" border="1px" cellspacing="10px" cellpadding="20px">'
+    );
+    var inicio = true;
+    var count = 0;
+    for (var i=0; i < matrix.length; i++) {
+
+        if (inicio) {
+            document.write("<tr>");
+            inicio=false;
+        }
+        if (matrix[i]==0)
+        document.write('<td style="background-color:white">' + i + '</td>');
+        else if (matrix[i]==1)
+            document.write('<td style="background-color:yellow">' + i + '</td>');
+        else
+        document.write('<td style="background-color:red">' + i + '</td>');
+
+        count++;
+
+        if (count == n) {
+            document.write("</tr>");
+            count=0;
+            inicio=true;
+        }
+    }
+    document.write(
+        '</table>'
+    );       
+}
+
+function insert(index, color) {
+    matrix[index] = color;
+    var color = (color == 1) ? "Amarilla" : "Roja";
+    return color + " -----> " + index;
+}
+
+var turn = 1;
+function makeMove() {
+    var index;
+    var msj = "";
+    
+    if (turn == 1){
+        index = CPU_IA(turn, 2);
+        msj = insert(index, turn);
+    }else{
+        index = CPU_IA(turn, 1);
+        msj = insert(index, turn);
+    }
+    turn = (turn == 1) ? 2 : 1;
+    printBoard();
+    return msj;
+}
+
+var pause = false;
+function p() {
+    (pause == true) ? console.log("Game reanulated") : console.log("Game in pause");
+    (pause == true) ? pause=false : pause=true;
+}
+
+async function play(seconds) {
+
+    var total = n * n - 1;
+    
+    printBoard();
+    while(total > 0) {
+        
+        await new Promise(r => setTimeout(r, seconds * 1000));
+        
+        if (!pause) {
+            var tempTurn = turn;
+            document.getElementById("mytable").remove();
+            console.log(makeMove());
+
+            var indiceGanador = validateWin(tempTurn);
+            if(indiceGanador.length > 0) {
+                console.log("El jugador " + tempTurn + " ganó en [" + indiceGanador + "]");
+                return;
+            }
+
+            total--;
+            console.log("...........................");
+        }
+    }
+    console.log("Empate");
+    return "Empate";
+}
+
+function printObject(dict) {
+    //document.write(JSON.stringify(dict, null, 4));
+    console.log(JSON.stringify(dict, null, 4));
+}
+
 function printMatrix() {
     var c = 0;
     for (var i=0; i<matrix.length; i++) {;
@@ -766,79 +856,3 @@ function printMatrix() {
     }
     document.write("<br>");
 }
-
-var turn = 1;
-
-function insert(index, color) {
-    matrix[index] = color;
-
-    var color = (color == 1) ? "Amarilla" : "Roja";
-    console.log("Ficha " + color + " inserta en " + index);
-
-    printMatrix();
-    return matrix[46];
-}
-
-function makeMove() {
-    
-    var contrario;
-    var index;
-    var ant = turn;
-    if (turn==1){
-        index = CPU_IA(turn, 2);
-        matrix[index] = turn;
-    }else{
-        index = CPU_IA(turn, 1);
-        matrix[index] = turn;
-    }
-    var color = (turn == 1) ? "Amarillo" : "Rojo";
-    turn = (turn == 1) ? 2 : 1;
-    printMatrix();
-    return color + " ---> " + index;
-    
-}
-
-async function play() {
-    var total = n * n - 1;
-    var gano = false;
-    while(total > 0) {
-        await new Promise(r => setTimeout(r, 8000));
-        console.log("...........................");
-        var tempTurn = turn;
-        console.log(makeMove());
-
-        var indiceGanador = validateWin(tempTurn);
-        if(indiceGanador.length > 0) {
-            console.log("El jugador " + tempTurn + " ganó en [" + indiceGanador + "]");
-            break;
-        }
-        total--;
-    }
-}
-
-/*
-function allNeighbors(color) {
-    var a = allPosiblesIndex();
-    var msj = "Vecinos de ";
-    (color == 1) ? msj += " amarillo" : msj += " rojo"
-    console.log(msj);
-    for (var i=0; i < a.length; i++) {
-        // amarrillo
-        console.log("index: " + a[i]);
-        var n1 = neighbors(a[i], color);
-        console.log(n1  );
-    }
-}
-*/
-
-function printObject(dict) {
-    //document.write(JSON.stringify(dict, null, 4));
-    console.log(JSON.stringify(dict, null, 4));
-}
-
-</script>
-</head>
-<body>
-
-</body>
-</html>
