@@ -39,7 +39,7 @@ var matrix = [
 */
 
 // estado corregir que gana con el movimiento contrario
-/*
+
 var n = 7;
 var matrix = [
     0, 0, 0, 0, 0, 0, 0, 
@@ -47,12 +47,13 @@ var matrix = [
     0, 0, 0, 0, 2, 0, 0,
     0, 0, 0, 1, 1, 1, 0, 
     0, 0, 0, 1, 1, 2, 0, 
-    2, 2, 2, 2, 1, 2, 2, 
+    0, 2, 2, 2, 1, 2, 2, 
     2, 1, 1, 1, 2, 2, 1];
 
-*/
 
+/*
 var n = 7;
+
 var matrix = [
     0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0,
@@ -62,6 +63,11 @@ var matrix = [
     0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0
 ];
+*/
+//var matrix = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2, 0, 2, 1, 0, 1, 2, 2, 2, 1, 1, 1];
+
+// no valida gane en diagonal
+//var matrix = [0, 0, 0, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2, 0, 0, 0, 1, 2, 2, 1, 0, 0, 1, 2, 1, 1, 1, 0, 0, 2, 1, 1, 1, 2, 0, 1, 2, 2, 2, 1, 2, 2, 2, 1, 1, 1, 2, 2, 1];
 
 
 // Validates if it is the player's first move
@@ -323,38 +329,47 @@ function validateSubgroup(group, color) {
  * Returns the index where the computer can apply a double play.
  * Returns -1 if double play is not possible.
  */
-function canMakeDoubleMove(cpuColor) {
+function canMakeDoubleMove(p1Color, p2Color) {
     
     // Find all possible indices where a checker can be inserted
-    var indexes = allPosiblesIndex(); // [i, i, i, i]
-    var size = indexes.length;
+    var indices = allPosiblesIndex(); // [i, i, i, i]
+    var size = indices.length;
     
     // For each possible movement its execution is simulated.
     for(var i=0; i < size; i++) {
-        matrix[indexes[i]] = cpuColor; // Simulating
-        //console.log("Simulating index ---> [" + indexes[i] + "]");
-        
-        // Once it's simulate, it searches posibles wins
-        var posiblesWin = searchWinningsIndices(cpuColor);
 
-        // Restart the matrix status
-        matrix[indexes[i]] = 0;
+        // Simulating the move to searche posibles double moves
+        var posiblesWin = simulateMove(indices[i], p1Color);
         
-        // If the computer has more than 1 option, it is because it can double play.
-        if (Object.keys(posiblesWin).length > 1) {
-            //printObject(posiblesWin);
-            //console.log("Can make double move at [" + indexes[i] + "]");
-            return indexes[i]; // Returns the index to apply the double play
+        // If the object has more than 1 the player1 can double play.
+        let total = Object.keys(posiblesWin).length;
+        if (total > 1) {
+            console.log("Player: " + p1Color + " can make double move in " + indices[i]);
+            console.log("Object returned: ");
+            printObject(posiblesWin);
+            
+            if (!rivalCanWinByPlayerMove(indices[i], p1Color, p2Color))
+                return indices[i]; // Returns the index to apply the double play
+            else {
+                console.log("Oh, be careful if u move there rival can win...");
+                // Try to block one of the indices on the posibles win
+                for(var key in posiblesWin) {
+                    var  index = parseInt(key);
+                    if(isEmptyAndValid(index)) {
+                        return index;
+                    }
+                }
+            }
         }
     }
     return -1; // returns -1 if there is no way to apply a double move
 }
 
 // Run a double simulation to see if a double play can be built.
-function canBuildDobleMove(cpuColor) {
+function canBuildDobleMove(p1Color, p2Color) {
     // Find all possible indices where a checker can be inserted
-    var indexes = allPosiblesIndex();
-    var size = indexes.length;
+    var indices = allPosiblesIndex();
+    var size = indices.length;
 
     // Posibles indices
     var posibles = [];
@@ -362,24 +377,30 @@ function canBuildDobleMove(cpuColor) {
     // For each possible movement its execution is simulated.
     for(var i=0; i < size; i++) {
 
-        //console.log("Simulating: index ---> [" + indexes[i] + "]");
-        matrix[indexes[i]] = cpuColor; // Simulating
+        matrix[indices[i]] = p1Color; // Simulating
 
-        // Ignorar crear jugadas de gane
-        if (Object.keys(searchWinningsIndices(cpuColor)).length > 0) {
-            matrix[indexes[i]] = 0;
+        // Ignores spaces where can build a line
+        if (Object.keys(searchWinningsIndices(p1Color)).length > 0) {
+            matrix[indices[i]] = 0;
             continue;
         }
         
         // Run double simulation
-        var index = canMakeDoubleMove(cpuColor);
+        var index = canMakeDoubleMove(p1Color, p2Color);
+        // For not giving the opponent the chance to win
+        var isValidMove = (Object.keys(searchWinningsIndices(p2Color)).length == 0) ? true: false;
 
         // Restart the matrix status
-        matrix[indexes[i]] = 0;
+        matrix[indices[i]] = 0;
 
         if(index != -1) {
-            //console.log("A posible builded move can be done in: " + indexes[i]);
-            posibles.push(indexes[i]);
+            console.log("A posible builded move can be done in: " + indices[i]);
+            if (isValidMove) {
+                console.log("Is a valid move");
+                posibles.push(indices[i]);
+            } else{
+                console.log("Is a valid move");
+            }
         }
     }
     let total = posibles.length;
@@ -544,101 +565,6 @@ function neighbors(index, color) {
     return neigbors;
 }
 
-function nextMove(cpuColor) {
-
-    // Searches all posibles moves
-    var indices = allPosiblesIndex();
-    let size = indices.length;
-    
-    var posibles = [];
-    let total = 0;
-
-    for (var i=0; i < size; i++) {
-        // for every index search all  its neighbordings
-        var array = neighbors(indices[i], cpuColor);
-        var arrayLength = array.length;
-        
-        if (arrayLength > total) {
-            posibles = [];
-            total = arrayLength;
-            posibles.push(indices[i]); // Posible index to choose
-        } else if (arrayLength == total ) {
-            posibles.push(indices[i]); // Posible index to choose
-        }
-    }
-    //console.log("posibles: [" + posibles + "]");
-    //console.log("they have total of neightbords: " + total);
-    var len = posibles.length;
-    return (total > 0) ? posibles[getRandomInt(0, len)]: -1;
-}
-
-function bestOptionToWin(winIndices) {
-    // buscar el indice apropiado
-    var index = -1;
-    var total = 0; // veces que puede ganar con ese indice
-    for(var key in winIndices) {
-        if (winIndices[key] > total) {
-            total = winIndices[key];
-            index = parseInt(key);
-        }
-    }
-    return index;
-}
-
-// Returns the next appropiate move
-function CPU_IA(cpuColor, rivalColor) {
-
-    // 1. INITIAL MOVE
-    if(isInitialMove(cpuColor) == true) {
-        return nextMove(cpuColor); // Pseudo random index choice
-    }
-
-    // 2. VERIFIES IF THE COMPUTER CAN WIN
-    var winIndices = {};
-    winIndices = searchWinningsIndices(cpuColor);
-    if (Object.keys(winIndices).length > 0) {
-        return bestOptionToWin(winIndices);
-    }
-
-    // 3. TO BLOCK OPPONENT MOVES
-    winIndices = searchWinningsIndices(rivalColor);
-    if (Object.keys(winIndices).length > 0) {
-        return bestOptionToWin(winIndices);
-    }
-
-    // 4. VALIDATE IF THE RIVAL CAN MAKE A DOUBLE MOVE
-    var index = canMakeDoubleMove(rivalColor);
-    if (index != -1) {
-        console.log("Rival: puede hacer doble jugada, bloqueando...");
-        return index;
-    }
-
-    // 5. ANALYZE IF THERE IS A POSSIBILITY THAT THE RIVAL CAN BUILD A DOUBLE PLAY.
-    index = canBuildDobleMove(rivalColor);
-    if (index != -1) {
-        console.log("Rival puede armar doble jugada, bloqueando...");
-        return index;
-    }
-
-    // 6. VALIDATE IF THE COMPUTER CAN MAKE A DOUBLE MOVE
-    var index = canMakeDoubleMove(cpuColor);
-    if (index != -1) {
-        console.log("Computer: Realizando doble jugada");
-        return index;
-    }
-
-    // 7. ANALYZE IF THERE IS A POSSIBILITY THAT THE COMPUTER CAN BUILD A DOUBLE PLAY.
-    index = canBuildDobleMove(cpuColor);
-    if (index != -1) {
-        console.log("Tratando de armar doble jugada");
-        return index;
-    }
-
-    // 8. FINALLY, TO SEARCH THE MOST APPROPIATE NEXT MOVE
-    return nextMove(cpuColor);
-}
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Validate if a player won the game -->
@@ -743,12 +669,168 @@ function evaluateSubgroups (indices, color) {
 }
 
 
+///////////////////////////////////////////////////////////////////////////////////////
+// IA Logic Functions -->
+///////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Validates if a movement can give the victory to an enemy
+ * p1Color: color of checker being simulated 
+ * p2Color: color of checker to verify if can win
+ */
+function rivalCanWinByPlayerMove(index, p1Color, p2Color) {
+    matrix[index] = p1Color; // Simulating player 1 move
+    var posiblesWin = searchWinningsIndices(p2Color); // searches player 2 posibles wins
+    matrix[index] = 0; // Return the state of the matrix
+
+    let total = Object.keys(posiblesWin).length;
+    return (total > 0) ? true : false;
+}
+
+/**
+ * Validates if a movement can give the victory to the player
+ * p1Color: color of checker being simulated
+ */
+function simulateMove(index, p1Color) {
+    matrix[index] = p1Color; // Simulating move
+    var posiblesWin = searchWinningsIndices(p1Color); // searches player posibles wins
+    matrix[index] = 0; // Return the state of the matrix
+    return posiblesWin;
+}
+
+function nextMove(p1Color, p2Color) {
+
+    // Searches all posibles moves
+    var indices = allPosiblesIndex();
+    let size = indices.length;
+    
+    var posibles = [];
+    let total = 0;
+
+    for (var i=0; i < size; i++) {
+
+        // Ignores indices that can make opponent win
+        if (rivalCanWinByPlayerMove(indices[i], p1Color, p2Color))
+            continue;
+
+        // Ignores indices that are a trick for opponent
+        if (rivalCanWinByPlayerMove(indices[i], p1Color, p1Color))
+            continue;
+
+        // for every index search all  its neighbordings
+        var array = neighbors(indices[i], p1Color);
+        var arrayLength = array.length;
+        
+        if (arrayLength > total) {
+            posibles = [];
+            total = arrayLength;
+            posibles.push(indices[i]); // Posible index to choose
+        } else if (arrayLength == total ) {
+            posibles.push(indices[i]); // Posible index to choose
+        }
+    }
+    //console.log("posibles: [" + posibles + "]");
+    //console.log("they have total of neightbords: " + total);
+    var len = posibles.length;
+    return (total > 0) ? posibles[getRandomInt(0, len)]: -1;
+}
+
+function bestOptionToWin(winIndices) {
+    // buscar el indice apropiado
+    var index = -1;
+    var total = 0; // veces que puede ganar con ese indice
+    for(var key in winIndices) {
+        if (winIndices[key] > total) {
+            total = winIndices[key];
+            index = parseInt(key);
+        }
+    }
+    return index;
+}
+
+// Returns the next appropiate move
+function CPU_IA(cpuColor, rivalColor) {
+
+    // 1. INITIAL MOVE
+    if(isInitialMove(cpuColor) == true) {
+        return nextMove(cpuColor, rivalColor); // Pseudo random index choice
+    }
+
+    // 2. VERIFIES IF THE COMPUTER CAN WIN
+    var winIndices = {};
+    winIndices = searchWinningsIndices(cpuColor);
+    if (Object.keys(winIndices).length > 0) {
+        console.log("Gana la compu :)...");
+        return bestOptionToWin(winIndices);
+    }
+
+    // 3. TO BLOCK OPPONENT MOVES
+    winIndices = searchWinningsIndices(rivalColor);
+    if (Object.keys(winIndices).length > 0) {
+        console.log("Bloqueando gane enemigo...");
+        return bestOptionToWin(winIndices);
+    }
+
+    // 4. VALIDATE IF THE COMPUTER CAN MAKE A DOUBLE MOVE
+    console.log("4. VALIDATE IF THE COMPUTER CAN MAKE A DOUBLE MOVE");
+    var index = canMakeDoubleMove(cpuColor, rivalColor);
+    if (index != -1) {
+        console.log("Computer: Realizando doble jugada");
+        return index;
+    }    console.log("");
+
+    // 5. VALIDATE IF THE RIVAL CAN MAKE A DOUBLE MOVE
+    console.log("5. VALIDATE IF THE RIVAL CAN MAKE A DOUBLE MOVE");
+    var index = canMakeDoubleMove(rivalColor, rivalColor);
+    if (index != -1) {
+        console.log("Rival: puede hacer doble jugada, bloqueando...");
+        return index;
+    }    console.log("");
+
+    // 6. ANALYZE IF THERE IS A POSSIBILITY THAT THE RIVAL CAN BUILD A DOUBLE PLAY.
+    console.log("6. ANALYZE IF THERE IS A POSSIBILITY THAT THE RIVAL CAN BUILD A DOUBLE PLAY.");
+    index = canBuildDobleMove(rivalColor, cpuColor);
+    if (index != -1) {
+        console.log("Rival puede armar doble jugada, bloqueando...");
+        return index;
+    }console.log("");
+
+    // 7. ANALYZE IF THERE IS A POSSIBILITY THAT THE COMPUTER CAN BUILD A DOUBLE PLAY.
+    console.log("7. ANALYZE IF THERE IS A POSSIBILITY THAT THE COMPUTER CAN BUILD A DOUBLE PLAY.");
+    index = canBuildDobleMove(cpuColor, rivalColor);
+    if (index != -1) {
+        console.log("Tratando de armar doble jugada");
+        return index;
+    }    console.log("");
+
+    // 8. TO SEARCH THE MOST APPROPIATE NEXT MOVE
+    console.log("8. TO SEARCH THE MOST APPROPIATE NEXT MOVE");
+    index = nextMove(cpuColor, rivalColor);
+    if (index != -1) {
+        console.log("Next move...");
+        return index;
+    }    console.log("");
+    
+    // 8. Finally, is there is not possibly next move, there is no option
+    console.log("8. Finally, is there is not possibly next move, there is no option");
+    var indices = allPosiblesIndex();
+    let size = indices.length;
+    return (size > 0) ? indices[getRandomInt(0, size)]: -1;
+}
 
 
 
 
-////////////////////////// DELETE //////////////////////////
 
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+// TEMPORAL FUNCTIONS, DELETE -->
+///////////////////////////////////////////////////////////////////////////////////////
+printBoard();
 function printBoard() {
     document.write(
         '<table id="mytable" style="background-color:blue" border="1px" cellspacing="10px" cellpadding="20px">'
